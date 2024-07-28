@@ -3,57 +3,58 @@
 @using System.Timers
 @implements IDisposable
 
-<div class="game-controls">
-    <label for="boardSize">Select Board Size: </label>
-    <select id="boardSize" @onchange="ChangeBoardSize">
-        <option value="8x8">8x8</option>
-        <option value="16x16">16x16</option>
-        <option value="30x16">30x16</option>
-    </select>
-    <button @onclick="InitializeGame">Reset Game</button>
-</div>
+<div class="container">
 
-<div class="game-status">
-    @if (!string.IsNullOrEmpty(GameMessage))
-    {
-        <p>@GameMessage</p>
-    }
-    @if (!GameOver && !FirstClick)
-    {
-        <p>Time: @elapsedTime seconds</p>
-    }
-</div>
+    <div class="game-controls">
+        <label for="boardSize">Select Board Size: </label>
+        <select id="boardSize" @onchange="ChangeBoardSize">
+            <option value="8x8">8x8</option>
+            <option value="16x16">16x16</option>
+            <option value="30x16">30x16</option>
+        </select>
+        <button @onclick="InitializeGame">Reset Game</button>
+    </div>
 
-<div class="best-times">
-    <h3>Best Times</h3>
-    <ul>
-        @foreach (var bestTime in bestTimes)
+    <div class="game-section">
+
+        <div class="game-status">
+
+            <p>Time: @elapsedTime seconds</p>
+            
+        </div>
+
+        @if (cells != null)
         {
-            <li>@bestTime.Key: @bestTime.Value seconds</li>
-        }
-    </ul>
-</div>
-
-@if (cells != null)
-{
-    <div class="game-board" @onkeydown="HandleKeyDown" tabindex="0" >
-        @for (int row = 0; row < Rows; row++)
-        {
-            <div class="board-row" >
-                @for (int col = 0; col < Columns; col++)
+            <div class="game-board" @onkeydown="HandleKeyDown" tabindex="0">
+                @for (int row = 0; row < Rows; row++)
                 {
-                    var currentRow = row;
-                    var currentCol = col;
-                    <button @onclick="() => CellClicked(currentRow, currentCol)" @onclick:stopPropagation="true"
-                            @oncontextmenu="(e) => HandleRightClick(e, currentRow, currentCol)"
-                            class="board-cell" disabled="@cells[row, col].IsRevealed">
-                        @GetCellContent(row, col)
-                    </button>
+                    <div class="board-row">
+                        @for (int col = 0; col < Columns; col++)
+                        {
+                            var currentRow = row;
+                            var currentCol = col;
+                            <button @onclick="() => CellClicked(currentRow, currentCol)" @onclick:stopPropagation="true"
+                                    @oncontextmenu="(e) => HandleRightClick(e, currentRow, currentCol)"
+                                    class="board-cell" disabled="@cells[row, col].IsRevealed">
+                                @GetCellContent(row, col)
+                            </button>
+                        }
+                    </div>
                 }
             </div>
         }
     </div>
-}
+
+    <div class="best-times">
+        <h3>Best Times</h3>
+        <ul>
+            @foreach (var bestTime in bestTimes)
+            {
+                <li>@bestTime.Size - @bestTime.Time: @bestTime.Seconds seconds on @bestTime.Date</li>
+            }
+        </ul>
+    </div>
+</div>
 
 
 @code {
@@ -61,12 +62,11 @@
     private int Columns = 8;
     private int Mines = 10;
     private Cell[,] cells;
-    private string GameMessage = string.Empty;
     private bool GameOver = false;
     private bool FirstClick = true;
     private System.Timers.Timer gameTimer;
     private double elapsedTime = 0;
-    private Dictionary<string, double> bestTimes = new();
+    private List<BestTime> bestTimes = new();
 
     private IJSObjectReference module;
     private IJSObjectReference localStorageModule;
@@ -109,13 +109,15 @@
 
     private void SaveBestTime()
     {
-        string key = $"{Rows}x{Columns}";
-        if (!bestTimes.ContainsKey(key) || elapsedTime < bestTimes[key])
-        {
-            bestTimes[key] = elapsedTime;
-            var jsonBestTimes = System.Text.Json.JsonSerializer.Serialize(bestTimes);
-            localStorageModule.InvokeVoidAsync("setItem", "BestTimes", jsonBestTimes);
-        }
+        string size = $"{Rows}x{Columns}";
+        bestTimes.Add(new BestTime
+            {
+                Size = size,
+                Seconds = elapsedTime,
+                Date = DateTime.Now
+            });
+        var jsonBestTimes = System.Text.Json.JsonSerializer.Serialize(bestTimes);
+        localStorageModule.InvokeVoidAsync("setItem", "BestTimes", jsonBestTimes);
     }
 
     private async Task LoadBestTimes()
@@ -123,7 +125,7 @@
         var jsonBestTimes = await localStorageModule.InvokeAsync<string>("getItem", "BestTimes");
         if (!string.IsNullOrEmpty(jsonBestTimes))
         {
-            bestTimes = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, double>>(jsonBestTimes);
+            bestTimes = System.Text.Json.JsonSerializer.Deserialize<List<BestTime>>(jsonBestTimes);
         }
     }
 
@@ -182,13 +184,13 @@
         }
         PlaceMines();
         CalculateAdjacentMines();
-        GameMessage = string.Empty;
         GameOver = false;
         FirstClick = true;
         elapsedTime = 0;
         gameTimer?.Stop();
         gameTimer = new System.Timers.Timer(1000);
         gameTimer.Elapsed += UpdateElapsedTime;
+        StateHasChanged();  // Ensure the board remains static after reset
     }
 
     private void PlaceMines()
@@ -240,8 +242,9 @@
         }
         if (FirstClick)
         {
+            gameTimer.Start();  // Start the timer at the beginning of the game
+
             FirstClick = false;
-            gameTimer.Start();
             if (cells[row, col].IsMine)
             {
                 RepositionMine(row, col);
@@ -251,7 +254,6 @@
         {
             GameOver = true;
             RevealAllMines();
-            GameMessage = "Game Over!";
             gameTimer.Stop();
         }
         else
@@ -260,7 +262,6 @@
             if (CheckWinCondition())
             {
                 GameOver = true;
-                GameMessage = "Congratulations, you won!";
                 gameTimer.Stop();
                 SaveBestTime();
             }
@@ -299,7 +300,6 @@
 
     private void RevealAllMines()
     {
-        //reveal all mines
         for (int row = 0; row < Rows; row++)
         {
             for (int col = 0; col < Columns; col++)
@@ -310,7 +310,6 @@
                 }
             }
         }
-
     }
 
     private bool CheckWinCondition()
@@ -352,61 +351,41 @@
         public bool IsFlagged { get; set; }
         public int AdjacentMines { get; set; }
     }
+
+    private class BestTime
+    {
+        public string Size { get; set; }
+        public double Seconds { get; set; }
+        public DateTime Date { get; set; }
+        public string Time => Date.ToString("HH:mm:ss");
+    }
 }
 
-        <style>
-    /* Styles for the Minesweeper game */
-
-    /* Styling the game controls */
-    .game-controls {
-        margin-bottom: 20px;
+<style>
+    .container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 20px;
     }
 
-        .game-controls label {
-            margin-right: 10px;
-        }
+    .game-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+        min-width: 300px;
+    }
 
-        .game-controls select,
-        .game-controls button {
-            margin-right: 10px;
-        }
-
-    /* Styling the game status section */
     .game-status {
         margin-bottom: 20px;
+        text-align: center;
     }
 
-        .game-status p {
-            font-size: 16px;
-            font-weight: bold;
-        }
-
-    /* Styling the best times section */
-    .best-times {
-        margin-bottom: 20px;
-    }
-
-        .best-times h3 {
-            margin-bottom: 10px;
-        }
-
-        .best-times ul {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        .best-times li {
-            font-size: 14px;
-        }
-
-    /* Styling the game board */
     .game-board {
-        display: inline-block;
-        border: 2px solid #000;
-        padding: 10px;
-        background-color: #ccc;
-        user-select: none;
-        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
 
     .board-row {
@@ -443,5 +422,13 @@
         .board-cell.mine {
             background-color: #000;
             color: #fff;
+        }
+    .best-times {
+        min-width: 200px;
+        flex: 1;
+    }
+
+        .best-times h3 {
+            margin-top: 0;
         }
 </style>
