@@ -12,30 +12,29 @@
             <option value="16x16">16x16</option>
             <option value="30x16">30x16</option>
         </select>
-        <button @onclick="InitializeGame">Reset Game</button>
+        
     </div>
 
-    <div class="game-section">
+    <div class="game-section" >
 
         <div class="game-status">
-
-            <p>Time: @elapsedTime seconds</p>
-            
+            <span>Time: @elapsedTime seconds</span>
+            <button @onclick="InitializeGame">Reset Game</button>
         </div>
 
         @if (cells != null)
         {
-            <div class="game-board" @onkeydown="HandleKeyDown" tabindex="0">
+            <div class="game-board" tabindex="0" >
                 @for (int row = 0; row < Rows; row++)
                 {
-                    <div class="board-row">
+                    <div class="board-row" >
                         @for (int col = 0; col < Columns; col++)
                         {
                             var currentRow = row;
                             var currentCol = col;
-                            <button @onclick="() => CellClicked(currentRow, currentCol)" @onclick:stopPropagation="true"
+                            <button @onclick="() => CellClicked(currentRow, currentCol)" 
                                     @oncontextmenu="(e) => HandleRightClick(e, currentRow, currentCol)"
-                                    class="board-cell" disabled="@cells[row, col].IsRevealed">
+                                    class="board-cell" disabled="@cells[row, col].IsRevealed" @oncontextmenu:preventDefault="true">
                                 @GetCellContent(row, col)
                             </button>
                         }
@@ -84,6 +83,7 @@
         if (firstRender)
         {
             module = await jsRuntime.InvokeAsync<IJSObjectReference>("import", "./localStorage.js");
+            await jsRuntime.InvokeVoidAsync("addKeyListener", DotNetObjectReference.Create(this));
             InitializeGame();
         }
     }
@@ -92,7 +92,11 @@
     {
         localStorageModule = await jsRuntime.InvokeAsync<IJSObjectReference>("import", "./localStorage.js");
     }
-
+    [JSInvokable]
+    public void ResetGame()
+    {
+        InitializeGame();
+    }
     private async void HandleRightClick(MouseEventArgs e, int row, int col)
     {
         ToggleFlag(row, col);
@@ -378,7 +382,6 @@
     }
 
     .game-status {
-        margin-bottom: 20px;
         text-align: center;
     }
 

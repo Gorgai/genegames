@@ -15,3 +15,11 @@ export function preventDefaultContextMenu(element) {
         console.error("Invalid element passed to preventDefaultContextMenu");
     }
 }
+
+window.addKeyListener = (dotNetObject) => {
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'r' || event.key === 'R') {
+            dotNetObject.invokeMethodAsync('ResetGame');
+        }
+    });
+};
