@@ -3,9 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34525.116
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "genegames", "genegames\genegames.csproj", "{E49EDAFA-E520-4AF8-8A4D-29A54B02A12E}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "genegames.Client", "genegames.Client\genegames.Client.csproj", "{DD8EEB2B-BDBB-4786-AF63-7F94EE16D5BA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "genegames", "genegames.csproj", "{10903922-C0FE-45AD-9186-1C6AA321A448}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,19 +11,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{E49EDAFA-E520-4AF8-8A4D-29A54B02A12E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E49EDAFA-E520-4AF8-8A4D-29A54B02A12E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E49EDAFA-E520-4AF8-8A4D-29A54B02A12E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E49EDAFA-E520-4AF8-8A4D-29A54B02A12E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DD8EEB2B-BDBB-4786-AF63-7F94EE16D5BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DD8EEB2B-BDBB-4786-AF63-7F94EE16D5BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DD8EEB2B-BDBB-4786-AF63-7F94EE16D5BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DD8EEB2B-BDBB-4786-AF63-7F94EE16D5BA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{10903922-C0FE-45AD-9186-1C6AA321A448}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{10903922-C0FE-45AD-9186-1C6AA321A448}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{10903922-C0FE-45AD-9186-1C6AA321A448}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{10903922-C0FE-45AD-9186-1C6AA321A448}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {739ACDCF-F9B8-4FFF-80C1-847A3459D5A3}
+		SolutionGuid = {7D1351D3-A96D-49F8-BE3E-58436D33FE3C}
 	EndGlobalSection
 EndGlobal
