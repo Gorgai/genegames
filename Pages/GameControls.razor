@@ -1,0 +1,43 @@
+﻿@using genegames.Services
+@using static genegames.Services.GameStateService
+@inject GameStateService GameStateService
+
+<div>
+    <button @onclick="GameStateService.NewGame">New Game</button>
+    <button disabled="@(GameStateService.CurrentState == GameState.NotStarted || GameStateService.CurrentState == GameState.Finished || GameStateService.CurrentState == GameState.GameOver)"
+            @onclick="GameStateService.PauseResumeGame">@PauseResumeButtonText</button>
+    <div>Timer: @GameStateService.GameTimer</div>
+</div>
+
+@code {
+    private string PauseResumeButtonText =>
+        GameStateService.CurrentState == GameState.Paused ? "Resume" : "Pause";
+    private IJSObjectReference module;
+    [Inject] private IJSRuntime jsRuntime { get; set; }
+
+    [JSInvokable]
+    public void ResetGame()
+    {
+        GameStateService.NewGame();
+    }
+
+    protected override void OnInitialized()
+    {
+        GameStateService.OnTimerChanged += StateHasChanged;
+        GameStateService.OnGameStateChanged += StateHasChanged;
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            module = await jsRuntime.InvokeAsync<IJSObjectReference>("import", "./localStorage.js");
+            await jsRuntime.InvokeVoidAsync("addKeyListener", DotNetObjectReference.Create(this));
+        }
+    }
+    public void Dispose()
+    {
+        GameStateService.OnTimerChanged -= StateHasChanged;
+        GameStateService.OnGameStateChanged -= StateHasChanged;
+
+    }
+}

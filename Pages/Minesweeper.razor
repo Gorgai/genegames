@@ -1,38 +1,23 @@
 ﻿@page "/minesweeper"
 @using Microsoft.AspNetCore.Components.Web
-@using System.Timers
+@using genegames.Services
+@using static genegames.Services.GameStateService
 @implements IDisposable
+@inject GameStateService GameStateService
 
-<div class="container">
-
-    <div class="game-controls">
-        <label for="boardSize">Select Board Size: </label>
-        <select id="boardSize" @onchange="ChangeBoardSize">
-            <option value="8x8">8x8</option>
-            <option value="16x16">16x16</option>
-            <option value="30x16">30x16</option>
-        </select>
-        
-    </div>
-
-    <div class="game-section" >
-
-        <div class="game-status">
-            <span>Time: @elapsedTime seconds</span>
-            <button @onclick="InitializeGame">Reset Game</button>
-        </div>
-
+<GameBase TGame="Minesweeper" Title="Minesweeper" GameSpecificControls="GameControls">
+    <div>
         @if (cells != null)
         {
-            <div class="game-board" tabindex="0" >
+            <div class="game-board" tabindex="0">
                 @for (int row = 0; row < Rows; row++)
                 {
-                    <div class="board-row" >
+                    <div class="board-row">
                         @for (int col = 0; col < Columns; col++)
                         {
                             var currentRow = row;
                             var currentCol = col;
-                            <button @onclick="() => CellClicked(currentRow, currentCol)" 
+                            <button @onclick="() => CellClicked(currentRow, currentCol)"
                                     @oncontextmenu="(e) => HandleRightClick(e, currentRow, currentCol)"
                                     class="board-cell" disabled="@cells[row, col].IsRevealed" @oncontextmenu:preventDefault="true">
                                 @GetCellContent(row, col)
@@ -43,47 +28,59 @@
             </div>
         }
     </div>
-
-    <div class="best-times">
-        <h3>Best Times</h3>
-        <ul>
-            @foreach (var bestTime in bestTimes)
-            {
-                <li>@bestTime.Size - @bestTime.Time: @bestTime.Seconds seconds on @bestTime.Date</li>
-            }
-        </ul>
-    </div>
-</div>
-
+</GameBase>
 
 @code {
+    private RenderFragment GameControls => @<div>
+        <!-- Minesweeper-specific controls -->
+        <label>Difficulty: </label>
+        <select>
+            <option>Easy</option>
+            <option>Medium</option>
+            <option>Hard</option>
+        </select>
+        <label for="boardSize">Select Board Size: </label>
+        <select id="boardSize" @onchange="ChangeBoardSize">
+            <option value="8x8">8x8</option>
+            <option value="16x16">16x16</option>
+            <option value="30x16">30x16</option>
+        </select>
+    </div>
+    ;
     private int Rows = 8;
     private int Columns = 8;
     private int Mines = 10;
     private Cell[,] cells;
-    private bool GameOver = false;
-    private bool FirstClick = true;
-    private System.Timers.Timer gameTimer;
-    private double elapsedTime = 0;
     private List<BestTime> bestTimes = new();
 
-    private IJSObjectReference module;
     private IJSObjectReference localStorageModule;
 
     [Inject] private IJSRuntime jsRuntime { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
+        GameStateService.OnGameStateChanged += GameStateChanged;
         await LoadLocalStorage();
         await LoadBestTimes();
+    }
+
+    public void Dispose()
+    {
+        GameStateService.OnGameStateChanged -= GameStateChanged;
+    }
+
+    private void GameStateChanged()
+    {
+        if (GameStateService.CurrentState == GameState.NotStarted)
+        {
+            InitializeGame();
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            module = await jsRuntime.InvokeAsync<IJSObjectReference>("import", "./localStorage.js");
-            await jsRuntime.InvokeVoidAsync("addKeyListener", DotNetObjectReference.Create(this));
             InitializeGame();
         }
     }
@@ -92,11 +89,13 @@
     {
         localStorageModule = await jsRuntime.InvokeAsync<IJSObjectReference>("import", "./localStorage.js");
     }
+
     [JSInvokable]
     public void ResetGame()
     {
         InitializeGame();
     }
+
     private async void HandleRightClick(MouseEventArgs e, int row, int col)
     {
         ToggleFlag(row, col);
@@ -117,7 +116,7 @@
         bestTimes.Add(new BestTime
             {
                 Size = size,
-                Seconds = elapsedTime,
+                Seconds = GameStateService._elapsedSeconds,
                 Date = DateTime.Now
             });
         var jsonBestTimes = System.Text.Json.JsonSerializer.Serialize(bestTimes);
@@ -133,24 +132,6 @@
         }
     }
 
-    public void Dispose()
-    {
-        gameTimer?.Dispose();
-    }
-
-    private void HandleKeyDown(KeyboardEventArgs e)
-    {
-        if (e.Key == "r" || e.Key == "R")
-        {
-            InitializeGame();
-        }
-    }
-
-    private void UpdateElapsedTime(object sender, ElapsedEventArgs e)
-    {
-        elapsedTime++;
-        InvokeAsync(StateHasChanged);
-    }
 
     private void ChangeBoardSize(ChangeEventArgs e)
     {
@@ -188,12 +169,6 @@
         }
         PlaceMines();
         CalculateAdjacentMines();
-        GameOver = false;
-        FirstClick = true;
-        elapsedTime = 0;
-        gameTimer?.Stop();
-        gameTimer = new System.Timers.Timer(1000);
-        gameTimer.Elapsed += UpdateElapsedTime;
         StateHasChanged();  // Ensure the board remains static after reset
     }
 
@@ -238,17 +213,21 @@
         }
     }
 
-    private void CellClicked(int row, int col)
+    public void CellClicked(int row, int col)
     {
-        if (GameOver || cells[row, col].IsFlagged)
+        if(GameStateService.CurrentState == GameState.Paused)
+        {
+            GameStateService.PauseResumeGame();
+        }
+
+        if (cells[row, col].IsFlagged)
         {
             return;
         }
-        if (FirstClick)
+        if (GameStateService.CurrentState == GameState.NotStarted)
         {
-            gameTimer.Start();  // Start the timer at the beginning of the game
+            GameStateService.StartNewGame();
 
-            FirstClick = false;
             if (cells[row, col].IsMine)
             {
                 RepositionMine(row, col);
@@ -256,17 +235,15 @@
         }
         if (cells[row, col].IsMine)
         {
-            GameOver = true;
+            GameStateService.SetGameState(GameState.GameOver);
             RevealAllMines();
-            gameTimer.Stop();
         }
         else
         {
             RevealCell(row, col);
             if (CheckWinCondition())
             {
-                GameOver = true;
-                gameTimer.Stop();
+                GameStateService.SetGameState(GameState.Finished);
                 SaveBestTime();
             }
         }
