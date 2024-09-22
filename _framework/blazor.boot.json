@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "genegames",
   "resources": {
-    "hash": "sha256-UMWNKuh4prhcMR3iQ/8sOsRefyYBuygtuoFnH4u3qss=",
+    "hash": "sha256-CXj9yeVaoDblcEcY5zatHWYKQrelNguPcJdP3G1h4mM=",
     "jsModuleNative": {
       "dotnet.native.8.0.8.746giovk6l.js": "sha256-juC5sA7gHTLXFEhAKgdM2/RavswpwCtDfjYGsAz2FXg="
     },
@@ -17,7 +17,7 @@
       "icudt_no_CJK.dat": "sha256-L7sV7NEYP37/Qr2FPCePo5cJqRgTXRwGHuwF5Q+0Nfs="
     },
     "assembly": {
-      "genegames.wasm": "sha256-zG18na+ntga5ztitGq1HLm+wvmn5Ltq95y2ZEP6nkHw=",
+      "genegames.wasm": "sha256-8uLLTCO3WPdE7RvQ6TU8QDU2X9X/c/Otyn3/lxbK4Eo=",
       "Microsoft.AspNetCore.Components.wasm": "sha256-c9WoClR/k93vu1kTsWNHY6EShpb3P7fqapOkDKWTigI=",
       "Microsoft.AspNetCore.Components.Web.wasm": "sha256-fkG6VLbFwF9TkhZeHxvAdyEVeAhFHZq0LwaZw4ZMytc=",
       "Microsoft.AspNetCore.Components.WebAssembly.wasm": "sha256-d6tN87QrJstiTMcLaUtZ6TWiNHa8A74Suuzx95thRrE=",
