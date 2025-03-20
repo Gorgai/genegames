@@ -1,0 +1,49 @@
+name: OSV-Scanner PR Check
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  osv_scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run OSV-Scanner
+        id: osv
+        uses: google/osv-scanner-action@v1
+        with:
+          scan-folders: "."
+
+      - name: Format OSV-Scanner results
+        id: format
+        run: |
+          if [[ -s osv-scanner.log ]]; then
+            echo 'RESULTS<<EOF' >> $GITHUB_ENV
+            echo '### 🛑 OSV-Scanner Found Vulnerabilities' >> $GITHUB_ENV
+            cat osv-scanner.log >> $GITHUB_ENV
+            echo 'EOF' >> $GITHUB_ENV
+          else
+            echo "RESULTS=✅ No vulnerabilities found." >> $GITHUB_ENV
+          fi
+
+      - name: Find existing PR comment
+        id: find_comment
+        uses: peter-evans/find-comment@v3
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: "github-actions[bot]"
+          body-includes: "### 🛠 OSV-Scanner Report"
+
+      - name: Create or update PR comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-id: ${{ steps.find_comment.outputs.comment-id }}
+          body: |
+            ### 🛠 OSV-Scanner Report
+            ${{ env.RESULTS }}
+          edit-mode: replace
